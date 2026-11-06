@@ -1,0 +1,9 @@
+target/
+*.war
+*.ear
+*.class
+.idea/
+*.iml
+.SmartTomcat/
+.DS_Store
+Thumbs.db

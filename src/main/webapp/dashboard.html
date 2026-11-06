@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — StockSim</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">📈 Stock<span>Sim</span></div>
+        <ul class="sidebar-nav">
+            <li><a href="dashboard.html" class="active"><span class="nav-icon">🏠</span> Dashboard</a></li>
+            <li><a href="markets.html"><span class="nav-icon">📊</span> Markets</a></li>
+            <li><a href="trade.html"><span class="nav-icon">💹</span> Trade</a></li>
+            <li><a href="portfolio.html"><span class="nav-icon">💼</span> Portfolio</a></li>
+            <li><a href="history.html"><span class="nav-icon">📜</span> History</a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar" id="userAvatar">U</div>
+                <div class="user-details">
+                    <div class="user-name" id="userName">User</div>
+                    <div class="user-balance" id="userBalance">₹0.00</div>
+                </div>
+            </div>
+            <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:10px;" onclick="logout()">Logout</button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="top-bar">
+            <h1>Dashboard</h1>
+            <div class="top-bar-actions">
+                <a href="trade.html" class="btn btn-primary btn-sm">+ Quick Trade</a>
+            </div>
+        </div>
+
+        <div class="page-content">
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Available Balance</div>
+                    <div class="stat-value" id="statBalance">₹0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Invested Value</div>
+                    <div class="stat-value" id="statInvested">₹0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Current Value</div>
+                    <div class="stat-value" id="statCurrent">₹0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total P&amp;L</div>
+                    <div class="stat-value" id="statPnl">₹0.00</div>
+                    <div class="stat-change" id="statPnlPercent"></div>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <!-- Top Movers -->
+                <div class="data-card">
+                    <div class="data-card-header">
+                        <h2>📊 Top Movers (Live Simulation)</h2>
+                        <a href="markets.html" class="btn btn-secondary btn-sm">View All</a>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Stock</th>
+                                <th>Price</th>
+                                <th>Change</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topMovers">
+                            <tr><td colspan="4" style="text-align:center;">Loading stocks...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Watchlist -->
+                <div class="data-card">
+                    <div class="data-card-header">
+                        <h2>⭐ Watchlist</h2>
+                    </div>
+                    <div id="watchlistContainer">
+                        <div class="empty-state">
+                            <div class="icon">⭐</div>
+                            <p>Your watchlist is empty.<br><a href="markets.html">Browse markets</a> to add stocks.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="js/app.js"></script>
+<script>
+    loadDashboard();
+    setInterval(loadDashboard, 3000);
+</script>
+</body>
+</html>

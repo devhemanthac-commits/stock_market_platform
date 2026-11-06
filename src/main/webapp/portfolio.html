@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio — StockSim</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">📈 Stock<span>Sim</span></div>
+        <ul class="sidebar-nav">
+            <li><a href="dashboard.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
+            <li><a href="markets.html"><span class="nav-icon">📊</span> Markets</a></li>
+            <li><a href="trade.html"><span class="nav-icon">💹</span> Trade</a></li>
+            <li><a href="portfolio.html" class="active"><span class="nav-icon">💼</span> Portfolio</a></li>
+            <li><a href="history.html"><span class="nav-icon">📜</span> History</a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar" id="userAvatar">U</div>
+                <div class="user-details">
+                    <div class="user-name" id="userName">User</div>
+                    <div class="user-balance" id="userBalance">₹0.00</div>
+                </div>
+            </div>
+            <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:10px;" onclick="logout()">Logout</button>
+        </div>
+    </aside>
+
+    <div class="main-content">
+        <div class="top-bar">
+            <h1>Portfolio Overview</h1>
+        </div>
+
+        <div class="page-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Invested</div>
+                    <div class="stat-value" id="pInvested">₹0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Current Value</div>
+                    <div class="stat-value" id="pCurrent">₹0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total P&amp;L</div>
+                    <div class="stat-value" id="pPnl">₹0.00</div>
+                    <div class="stat-change" id="pPnlPct"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Available Cash</div>
+                    <div class="stat-value positive" id="pCash">₹0.00</div>
+                </div>
+            </div>
+
+            <div class="data-card">
+                <div class="data-card-header">
+                    <h2>Your Stock Holdings</h2>
+                </div>
+                <div id="holdingsContainer">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="js/app.js"></script>
+<script>
+    async function loadPortfolio() {
+        await loadUserInfo();
+        try {
+            const res = await fetch('api/portfolio');
+            const data = await res.json();
+            document.getElementById('pInvested').textContent = formatCurrency(data.totalInvested);
+            document.getElementById('pCurrent').textContent = formatCurrency(data.totalCurrentValue);
+            document.getElementById('pCash').textContent = formatCurrency(data.balance);
+
+            const pnlEl = document.getElementById('pPnl');
+            const pnlPctEl = document.getElementById('pPnlPct');
+            pnlEl.textContent = formatCurrency(data.totalPnl);
+            pnlEl.className = 'stat-value ' + (data.totalPnl >= 0 ? 'positive' : 'negative');
+            pnlPctEl.textContent = `(${data.totalPnlPercent >= 0 ? '+' : ''}${data.totalPnlPercent.toFixed(2)}%)`;
+            pnlPctEl.className = 'stat-change ' + (data.totalPnl >= 0 ? 'positive' : 'negative');
+
+            const container = document.getElementById('holdingsContainer');
+            if (!data.holdings || data.holdings.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">💼</div>
+                        <p>No active holdings. <a href="trade.html">Start trading</a> to build your portfolio!</p>
+                    </div>`;
+                return;
+            }
+            container.innerHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Stock</th>
+                            <th>Qty</th>
+                            <th>Avg Price</th>
+                            <th>Current Price</th>
+                            <th>Invested</th>
+                            <th>Current Value</th>
+                            <th>P&amp;L</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.holdings.map(h => `
+                            <tr>
+                                <td><strong>${h.symbol}</strong><br><span style="color:var(--text-muted);font-size:0.8rem;">${h.name}</span></td>
+                                <td>${h.quantity}</td>
+                                <td>₹${h.avgPrice.toFixed(2)}</td>
+                                <td>₹${h.currentPrice.toFixed(2)}</td>
+                                <td>₹${h.invested.toFixed(2)}</td>
+                                <td>₹${h.currentValue.toFixed(2)}</td>
+                                <td class="${h.pnl >= 0 ? 'positive' : 'negative'}">
+                                    ${h.pnl >= 0 ? '+' : ''}₹${h.pnl.toFixed(2)}
+                                    <br><span style="font-size:0.8rem;">(${h.pnlPercent >= 0 ? '+' : ''}${h.pnlPercent.toFixed(2)}%)</span>
+                                </td>
+                                <td>
+                                    <a href="trade.html?symbol=${h.symbol}" class="btn btn-red btn-sm">Trade / Sell</a>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>`;
+        } catch(e) { console.error('Error loading portfolio:', e); }
+    }
+    loadPortfolio();
+    setInterval(loadPortfolio, 3000);
+</script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register — StockSim</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="logo">📈 Stock<span>Sim</span></div>
+        <p class="subtitle">Create your free account and start trading with ₹10,00,000 demo funds!</p>
+        <div class="error-msg" id="errorMsg"></div>
+        <form id="registerForm">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="fullName" placeholder="John Doe" required>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="email" placeholder="john@example.com" required>
+            </div>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="username" placeholder="Choose a username" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" placeholder="Create a password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Create Account</button>
+        </form>
+        <div class="auth-footer">
+            Already have an account? <a href="login.html">Log in</a>
+        </div>
+    </div>
+</div>
+<script>
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById('errorMsg');
+    errEl.style.display = 'none';
+    try {
+        const res = await fetch('api/register', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                fullName: document.getElementById('fullName').value,
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value,
+                email: document.getElementById('email').value
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            localStorage.setItem('user', JSON.stringify(data));
+            window.location.href = 'dashboard.html';
+        } else {
+            errEl.textContent = data.error || 'Registration failed';
+            errEl.style.display = 'block';
+        }
+    } catch(err) {
+        errEl.textContent = 'Connection error. Is the server running?';
+        errEl.style.display = 'block';
+    }
+});
+</script>
+</body>
+</html>

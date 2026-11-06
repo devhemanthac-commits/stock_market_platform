@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trade — StockSim</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">📈 Stock<span>Sim</span></div>
+        <ul class="sidebar-nav">
+            <li><a href="dashboard.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
+            <li><a href="markets.html"><span class="nav-icon">📊</span> Markets</a></li>
+            <li><a href="trade.html" class="active"><span class="nav-icon">💹</span> Trade</a></li>
+            <li><a href="portfolio.html"><span class="nav-icon">💼</span> Portfolio</a></li>
+            <li><a href="history.html"><span class="nav-icon">📜</span> History</a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar" id="userAvatar">U</div>
+                <div class="user-details">
+                    <div class="user-name" id="userName">User</div>
+                    <div class="user-balance" id="userBalance">₹0.00</div>
+                </div>
+            </div>
+            <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:10px;" onclick="logout()">Logout</button>
+        </div>
+    </aside>
+
+    <div class="main-content">
+        <div class="top-bar">
+            <h1>Buy &amp; Sell Order Terminal</h1>
+        </div>
+
+        <div class="page-content">
+            <div class="two-col">
+                <!-- Stock selector + details -->
+                <div>
+                    <div class="data-card" style="padding:24px;">
+                        <div class="form-group">
+                            <label>Select Stock to Trade</label>
+                            <select id="stockSelect" onchange="onStockSelect()">
+                                <option value="">-- Choose a stock --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="data-card" id="stockDetails" style="display:none;">
+                        <div class="data-card-header">
+                            <h2 id="detailName">-</h2>
+                            <span id="detailSector" style="color:var(--text-muted);font-size:0.85rem;"></span>
+                        </div>
+                        <div style="padding:24px;">
+                            <div class="stats-grid" style="margin-bottom:0;">
+                                <div class="stat-card">
+                                    <div class="stat-label">Day High</div>
+                                    <div class="stat-value positive" id="detailHigh">-</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-label">Day Low</div>
+                                    <div class="stat-value negative" id="detailLow">-</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-label">Prev Close</div>
+                                    <div class="stat-value" id="detailPrevClose">-</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-label">Volume</div>
+                                    <div class="stat-value" id="detailVolume">-</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trade panel -->
+                <div class="trade-panel" id="tradePanel" style="display:none;">
+                    <div class="stock-price-display">
+                        <div id="tradeSymbol" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:4px;">-</div>
+                        <div class="price" id="tradePrice">₹0.00</div>
+                        <div class="change" id="tradeChange">-</div>
+                    </div>
+
+                    <div class="trade-tabs">
+                        <button type="button" class="trade-tab active-buy" id="buyTab" onclick="setTradeType('BUY')">BUY</button>
+                        <button type="button" class="trade-tab" id="sellTab" onclick="setTradeType('SELL')">SELL</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Quantity (Shares)</label>
+                        <input type="number" id="tradeQty" min="1" value="1" onchange="updateOrderSummary()" oninput="updateOrderSummary()">
+                    </div>
+
+                    <div class="order-summary">
+                        <div class="row">
+                            <span>Price per share</span>
+                            <span id="summaryPrice">₹0.00</span>
+                        </div>
+                        <div class="row">
+                            <span>Quantity</span>
+                            <span id="summaryQty">1</span>
+                        </div>
+                        <div class="row total">
+                            <span>Total Estimated Amount</span>
+                            <span id="summaryTotal">₹0.00</span>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-green btn-lg" id="executeTrade" style="width:100%;" onclick="executeTrade()">
+                        Place Buy Order
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="js/app.js"></script>
+<script>
+    let selectedStock = null;
+    let tradeType = 'BUY';
+
+    async function init() {
+        await loadUserInfo();
+        const res = await fetch('api/market/');
+        const stocks = await res.json();
+        const sel = document.getElementById('stockSelect');
+        stocks.sort((a, b) => a.symbol.localeCompare(b.symbol));
+        stocks.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.symbol;
+            opt.textContent = `${s.symbol} — ${s.name}`;
+            sel.appendChild(opt);
+        });
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('symbol')) {
+            sel.value = params.get('symbol');
+            onStockSelect();
+        }
+    }
+
+    async function onStockSelect() {
+        const sym = document.getElementById('stockSelect').value;
+        if (!sym) {
+            document.getElementById('stockDetails').style.display = 'none';
+            document.getElementById('tradePanel').style.display = 'none';
+            return;
+        }
+        try {
+            const res = await fetch('api/market/' + sym);
+            selectedStock = await res.json();
+            renderStockDetails();
+            document.getElementById('stockDetails').style.display = 'block';
+            document.getElementById('tradePanel').style.display = 'block';
+            updateOrderSummary();
+        } catch(e) { console.error(e); }
+    }
+
+    function renderStockDetails() {
+        const s = selectedStock;
+        document.getElementById('detailName').textContent = `${s.symbol} — ${s.name}`;
+        document.getElementById('detailSector').textContent = s.sector;
+        document.getElementById('detailHigh').textContent = '₹' + s.dayHigh.toFixed(2);
+        document.getElementById('detailLow').textContent = '₹' + s.dayLow.toFixed(2);
+        document.getElementById('detailPrevClose').textContent = '₹' + s.previousClose.toFixed(2);
+        document.getElementById('detailVolume').textContent = (s.volume / 1000).toFixed(0) + 'K';
+        document.getElementById('tradeSymbol').textContent = s.symbol;
+        document.getElementById('tradePrice').textContent = '₹' + s.price.toFixed(2);
+        const chg = s.change;
+        const chgPct = s.changePercent;
+        const chgEl = document.getElementById('tradeChange');
+        chgEl.textContent = `${chg >= 0 ? '+' : ''}${chg.toFixed(2)} (${chgPct >= 0 ? '+' : ''}${chgPct.toFixed(2)}%)`;
+        chgEl.className = 'change ' + (chg >= 0 ? 'positive' : 'negative');
+    }
+
+    function setTradeType(type) {
+        tradeType = type;
+        const buyTab = document.getElementById('buyTab');
+        const sellTab = document.getElementById('sellTab');
+        const btn = document.getElementById('executeTrade');
+        if (type === 'BUY') {
+            buyTab.className = 'trade-tab active-buy';
+            sellTab.className = 'trade-tab';
+            btn.className = 'btn btn-green btn-lg';
+            btn.textContent = 'Place Buy Order';
+        } else {
+            buyTab.className = 'trade-tab';
+            sellTab.className = 'trade-tab active-sell';
+            btn.className = 'btn btn-red btn-lg';
+            btn.textContent = 'Place Sell Order';
+        }
+        btn.style.width = '100%';
+    }
+
+    function updateOrderSummary() {
+        if (!selectedStock) return;
+        const qty = parseInt(document.getElementById('tradeQty').value) || 0;
+        document.getElementById('summaryPrice').textContent = '₹' + selectedStock.price.toFixed(2);
+        document.getElementById('summaryQty').textContent = qty;
+        document.getElementById('summaryTotal').textContent = '₹' + (selectedStock.price * qty).toFixed(2);
+    }
+
+    async function executeTrade() {
+        if (!selectedStock) return;
+        const qty = parseInt(document.getElementById('tradeQty').value) || 0;
+        if (qty <= 0) { showToast('Enter a valid quantity', 'error'); return; }
+        try {
+            const res = await fetch('api/trade', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    symbol: selectedStock.symbol,
+                    type: tradeType,
+                    quantity: qty
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.message, 'success');
+                await loadUserInfo();
+                onStockSelect();
+            } else {
+                showToast(data.error || 'Trade error', 'error');
+            }
+        } catch(e) {
+            showToast('Trade request failed', 'error');
+        }
+    }
+
+    init();
+    setInterval(() => { if (selectedStock) onStockSelect(); }, 3000);
+</script>
+</body>
+</html>

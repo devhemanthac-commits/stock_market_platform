@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — StockSim</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="logo">📈 Stock<span>Sim</span></div>
+        <p class="subtitle">Welcome back! Log in to continue trading.</p>
+        <div class="error-msg" id="errorMsg"></div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="username" placeholder="Enter your username" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" placeholder="Enter your password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Log In</button>
+        </form>
+        <div class="auth-footer">
+            Don't have an account? <a href="register.html">Sign up for free</a>
+        </div>
+    </div>
+</div>
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById('errorMsg');
+    errEl.style.display = 'none';
+    try {
+        const res = await fetch('api/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            localStorage.setItem('user', JSON.stringify(data));
+            window.location.href = 'dashboard.html';
+        } else {
+            errEl.textContent = data.error || 'Login failed';
+            errEl.style.display = 'block';
+        }
+    } catch(err) {
+        errEl.textContent = 'Connection error. Is the server running?';
+        errEl.style.display = 'block';
+    }
+});
+</script>
+</body>
+</html>

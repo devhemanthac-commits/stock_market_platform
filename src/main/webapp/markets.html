@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markets — StockSim</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">📈 Stock<span>Sim</span></div>
+        <ul class="sidebar-nav">
+            <li><a href="dashboard.html"><span class="nav-icon">🏠</span> Dashboard</a></li>
+            <li><a href="markets.html" class="active"><span class="nav-icon">📊</span> Markets</a></li>
+            <li><a href="trade.html"><span class="nav-icon">💹</span> Trade</a></li>
+            <li><a href="portfolio.html"><span class="nav-icon">💼</span> Portfolio</a></li>
+            <li><a href="history.html"><span class="nav-icon">📜</span> History</a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar" id="userAvatar">U</div>
+                <div class="user-details">
+                    <div class="user-name" id="userName">User</div>
+                    <div class="user-balance" id="userBalance">₹0.00</div>
+                </div>
+            </div>
+            <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:10px;" onclick="logout()">Logout</button>
+        </div>
+    </aside>
+
+    <div class="main-content">
+        <div class="top-bar">
+            <h1>Markets</h1>
+            <div class="top-bar-actions">
+                <div class="search-box">
+                    <span>🔍</span>
+                    <input type="text" placeholder="Search stocks or sectors..." id="searchInput" onkeyup="filterMarketTable()">
+                </div>
+            </div>
+        </div>
+
+        <div class="page-content">
+            <div class="data-card">
+                <div class="data-card-header">
+                    <h2>Simulated Market Watch</h2>
+                    <span style="color:var(--text-muted);font-size:0.85rem;" id="stockCount">0 stocks</span>
+                </div>
+                <table class="data-table" id="marketTable">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Company</th>
+                            <th>Sector</th>
+                            <th>Price (₹)</th>
+                            <th>Change</th>
+                            <th>Change %</th>
+                            <th>Volume</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="marketBody">
+                        <tr><td colspan="8" style="text-align:center;">Loading market data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="js/app.js"></script>
+<script>
+    loadMarkets();
+    setInterval(loadMarkets, 3000);
+
+    async function loadMarkets() {
+        await loadUserInfo();
+        try {
+            const [stocksRes, wlRes] = await Promise.all([
+                fetch('api/market/'),
+                fetch('api/watchlist')
+            ]);
+            const stocks = await stocksRes.json();
+            const watchlist = await wlRes.json();
+            const watchSymbols = new Set((watchlist || []).map(w => w.symbol));
+            
+            document.getElementById('stockCount').textContent = stocks.length + ' stocks';
+            const tbody = document.getElementById('marketBody');
+            tbody.innerHTML = stocks.map(s => `
+                <tr data-search="${s.symbol} ${s.name} ${s.sector}">
+                    <td><strong>${s.symbol}</strong></td>
+                    <td>${s.name}</td>
+                    <td>${s.sector}</td>
+                    <td><strong>₹${s.price.toFixed(2)}</strong></td>
+                    <td class="${s.change >= 0 ? 'positive' : 'negative'}">
+                        ${s.change >= 0 ? '+' : ''}${s.change.toFixed(2)}
+                    </td>
+                    <td class="${s.changePercent >= 0 ? 'positive' : 'negative'}">
+                        ${s.changePercent >= 0 ? '+' : ''}${s.changePercent.toFixed(2)}%
+                    </td>
+                    <td>${(s.volume/1000).toFixed(0)}K</td>
+                    <td>
+                        <button class="watchlist-btn ${watchSymbols.has(s.symbol) ? 'active' : ''}"
+                                title="Toggle Watchlist"
+                                onclick="toggleWatchlist('${s.symbol}', ${watchSymbols.has(s.symbol)}).then(loadMarkets)">
+                            ${watchSymbols.has(s.symbol) ? '★' : '☆'}
+                        </button>
+                        <a href="trade.html?symbol=${s.symbol}" class="btn btn-primary btn-sm"
+                           style="margin-left:8px;">Trade</a>
+                    </td>
+                </tr>
+            `).join('');
+            filterMarketTable();
+        } catch(e) { console.error('Error fetching market:', e); }
+    }
+
+    function filterMarketTable() {
+        const q = (document.getElementById('searchInput').value || '').toLowerCase();
+        document.querySelectorAll('#marketBody tr').forEach(row => {
+            if (row.dataset && row.dataset.search) {
+                row.style.display = row.dataset.search.toLowerCase().includes(q) ? '' : 'none';
+            }
+        });
+    }
+</script>
+</body>
+</html>
